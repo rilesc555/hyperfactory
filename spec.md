@@ -1,0 +1,7 @@
+# Hyperfactory
+
+This project has two main parts:
+
+1. A core product called hyperfactory. This a platform inspired by the United Manufacturing Hub that enables factories to collect, process, and analyze data from various sources. It provides a unified namespace for all factory data, visualization tools, and machine learning models. It includes that ability to create custom screens/ for factory workcenters/machines. It connects to an odoo database to integrate with an ERP and provide insights into production data. It uses openziti for secure communication between devices and the cloud.
+
+2. An IaaS called hyperfactory-cloud. This is a cloud-based platform that provides a managed service for hyperfactory. It provides a simple way to deploy and manage hyperfactory instances. It also provides a way to connect hyperfactory instances to each other and to the cloud. Customers will be able to go to an online portal/form/chat (still to be determined), answer some questions about their use case (device ips/mac addresses, etc.) and get a customized hyperfactory instance up and running in minutes. They will be able to customize their deployment after creating it from this screen, including paying for more compute, bandwidth, and storage.
