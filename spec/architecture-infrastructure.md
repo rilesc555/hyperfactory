@@ -3,12 +3,13 @@
 ## Decided
 
 - **Cloud Platform**: Hyperfactory instances will run in the cloud on OpenMetal infrastructure
-- **Edge Technology**: Will fork EdgeX Foundry to run on factory edge devices/boxes
+- **Edge Technology**: UMH Core (single container) for edge device connectivity and unified namespace
 - **Container Orchestration**: Docker Compose for simplicity, migrate to Kubernetes when scaling demands require it
 - **Data Flow**: Edge devices stream data to hyperfactory instances running in the cloud
 - **Infrastructure Context**: There is existing infrastructure code in the /context folder from another project that controls a Kubernetes cluster, which may or may not be used for this project
 - **Architecture Philosophy**: Keep things simple for small team/product, but maintain ability to scale when necessary
 - **Scaling Priority**: Factory data flow is relatively steady, so immediate elasticity is not the highest priority
+- **EdgeX Foundry Decision**: Not using EdgeX Foundry - UMH Core provides sufficient protocol connectivity (50+ industrial connectors) without the operational complexity of microservices architecture
 
 ## Undecided
 
@@ -53,40 +54,30 @@
 
 **Recommendation:** Start with Docker Compose for simplicity, migrate to Kubernetes when scaling demands require it.
 
-### 2. EdgeX Foundry + UMH Core Integration Strategy
+### 2. UMH Core Architecture (EdgeX Foundry Removed)
 
-**Analysis:** UMH Core is indeed the right choice for the unified namespace aspect! Here's how EdgeX and UMH Core complement each other:
+**Decision:** Use UMH Core only - EdgeX Foundry adds unnecessary complexity without significant benefits for our use case.
 
-**EdgeX Foundry Role (Edge Layer):**
-- **Device Connectivity**: Handles physical device connections and protocol translation
-- **Device Services**: Manages device drivers for industrial protocols (OPC UA, Modbus, S7, etc.)
-- **Local Processing**: Edge-side data validation and basic transformation
-- **Device Management**: Device discovery, configuration, and health monitoring
-- **Message Bus**: Local MQTT broker for edge device communication
-
-**UMH Core Role (Unified Namespace Layer):**
+**UMH Core Role (Complete Edge Solution):**
 - **Unified Namespace**: Provides the structured topic hierarchy (`umh.v1.enterprise.site.area.line._contract.tag`)
+- **Protocol Connectivity**: 50+ industrial protocol connectors via Benthos-UMH (OPC UA, Modbus, S7, Ethernet/IP, etc.)
 - **Data Modeling**: Validates and structures data using data contracts (`_raw`, `_pump_v1`, etc.)
-- **Protocol Bridges**: 50+ industrial protocol connectors via Benthos-UMH
 - **Stream Processing**: Real-time data transformation and aggregation
+- **Local Buffering**: Embedded Redpanda for offline capability
 - **Cloud Integration**: Handles edge-to-cloud data flow and synchronization
 
-**Integration Architecture:**
+**Simplified Architecture:**
 
 ```
 Factory Edge Box:
 ┌─────────────────────────────────────────────────────┐
-│ EdgeX Foundry                                       │
-│ ├── Device Services (OPC UA, Modbus, S7)          │
-│ ├── Core Data (local storage/buffering)           │
-│ ├── Core Metadata (device registry)               │
-│ └── Message Bus (local MQTT)                      │
-│                    │                               │
-│ UMH Core                                           │
-│ ├── Bridge (MQTT → UNS)                          │
-│ ├── Data Models (_raw, _pump_v1)                 │
-│ ├── Local UNS (buffering)                        │
-│ └── Cloud Sync (to Hyperfactory)                 │
+│ UMH Core (Single Container)                        │
+│ ├── Protocol Bridges (OPC UA, Modbus, S7, etc.)   │
+│ ├── Unified Namespace (structured topics)          │
+│ ├── Data Contracts (_raw, _pump_v1)               │
+│ ├── Redpanda (local buffering)                    │
+│ ├── Benthos-UMH (stream processing)               │
+│ └── Cloud Sync (to Hyperfactory)                  │
 └─────────────────────────────────────────────────────┘
                      │
                      ▼ (MQTT/HTTP)
@@ -99,27 +90,18 @@ Factory Edge Box:
 └─────────────────────────────────────────────────────┘
 ```
 
-**Why This Combination Works:**
-1. **Separation of Concerns**: EdgeX handles device complexity, UMH Core handles data organization
-2. **Proven Pattern**: UMH Core already has bridges for industrial protocols
-3. **Unified Namespace**: UMH Core's topic structure provides the organized data backbone
-4. **Flexibility**: Can use EdgeX device services OR UMH Core bridges depending on requirements
-5. **Scalability**: Both systems are designed for industrial scale
+**Why UMH Core Alone is Sufficient:**
+1. **Single Container Simplicity**: Aligns with our "keep it simple" philosophy
+2. **Complete Protocol Coverage**: 50+ industrial connectors cover factory needs
+3. **Built-in Unified Namespace**: No additional integration required
+4. **Operational Simplicity**: One container vs. 6+ EdgeX microservices
+5. **Purpose-Built**: Designed specifically for industrial IoT unified namespace patterns
 
-**Is EdgeX Necessary?**
-- **For Simple Deployments**: UMH Core bridges alone might be sufficient
-- **For Complex Device Management**: EdgeX provides better device lifecycle management
-- **For Custom Protocols**: EdgeX device services offer more flexibility
-- **For Edge Intelligence**: EdgeX provides better local processing capabilities
-
-**Recommendation**: Start with UMH Core bridges for simplicity, add EdgeX when device management complexity requires it.
-
-**Decision:** Use UMH Core for unified namespace + optionally EdgeX for complex device management
-
-**Updated Understanding:**
-- UMH Core provides the unified namespace and data organization we need
-- EdgeX Foundry can complement UMH Core for complex device management scenarios
-- Start with UMH Core bridges, add EdgeX when device complexity requires it
+**EdgeX Foundry Analysis - Why We Don't Need It:**
+- **Microservices Complexity**: 6+ containers vs. 1 container
+- **Redundant Protocol Support**: UMH Core already covers needed protocols
+- **Over-Engineering**: Device lifecycle management features are overkill for factory scenarios
+- **Operational Overhead**: Multiple databases, configurations, and services to manage
 
 ### 3. Multi-tenancy Strategy
 
